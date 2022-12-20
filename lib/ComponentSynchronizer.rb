@@ -1,0 +1,182 @@
+#!/usr/bin/env ruby
+# encoding: UTF-8
+
+require "fileutils"
+require 'colored2'
+require 'open3'
+require_relative './Utilities.rb'
+require_relative './RepoManager.rb'
+
+module Pixab
+
+  class ComponentSynchronizer
+
+    attr_accessor :is_need_build
+    attr_reader :repo_manager, :repos, :main_repo_name, :updated_repo_names
+  
+    def initialize(repo_manager = RepoManager.new, commands = nil)
+      @repo_manager = repo_manager
+      @is_need_build = false
+      if commands.nil?
+        return
+      end
+      commands.each_index do |index|
+        command = commands[index]
+        case command
+        when  "--build"
+          @is_need_build = true
+        else
+        end
+      end
+    end
+  
+    def run
+      read_repo_infos
+      puts "\n》》》》》正在将本地调试仓替换为远程仓 》》》》》》》》》》\n".green
+      active_repo_names = replace_local_to_remote
+      puts "\n》》》》》正在合并主工程代码 》》》》》》》》》》》》》》》\n".green
+      merge_and_check 
+      puts "\n》》》》》正在读取最新提交，并更新pod 》》》》》》》》》》\n".green
+      replace_podfile
+      puts "\n》》》》》正在将远程仓复原为本地调试仓 》》》》》》》》》》\n".green
+      reset_remote_to_local(active_repo_names)
+      if is_need_build
+        puts "\n》》》》》正在进行Xcode编译 》》》》》》》》》》》》》》》\n".green
+        FileUtils.cd("#{repo_manager.root_path}/#{main_repo_name}")
+        build
+      end
+    end
+  
+    # 读取组件信息
+    def read_repo_infos
+      @repos = repo_manager.sub_repos
+      @main_repo_name = repo_manager.main_repo["name"]
+    end
+  
+    # 将本地调试仓修改为远程仓
+    def replace_local_to_remote
+      active_repo_names = ""
+      repos.each do |repo|
+        components = repo["components"]
+        is_avtive = true
+        components.each do |component|
+          if component["tool"] == "CocoaPods"
+            is_avtive = !component["active"].empty?
+            break
+          end
+        end
+        if is_avtive 
+          active_repo_names += " #{repo["name"]}"
+        end
+      end
+  
+      if !active_repo_names.empty?
+        system "mbox deactivate#{active_repo_names}"
+        system "mbox pod install"
+        Utilities.check_shell_result("Error: execute `mbox pod install` failed")
+      end
+      return active_repo_names
+    end
+  
+    # 将远程仓重置为本地调试仓
+    def reset_remote_to_local(active_repo_names)
+      if active_repo_names.nil? || active_repo_names.empty?
+        return
+      end
+      system "mbox activate#{active_repo_names}"
+    end
+  
+    # 合并代码并检查冲突
+    def merge_and_check
+      system "mbox merge --repo #{main_repo_name}"
+      FileUtils.cd("#{repo_manager.root_path}/#{main_repo_name}")
+      `git --no-pager diff --check`
+      conflict_hint = "Error: code conflict!\n"
+      conflict_hint += "step1: Resolve `#{main_repo_name}` code conflicts\n"
+      conflict_hint += "step2: Execute this script again"
+      Utilities.check_shell_result(conflict_hint)
+    end
+  
+    # 替换主工程Podfile
+    def replace_podfile
+      # 获取每个子库最新的commit id
+      repo_commite_id = {}
+      repos.each do |repo|
+        repo_name = repo["name"]
+        repo_target_branch = repo["target_branch"]
+        FileUtils.cd("#{repo_manager.root_path}/#{repo_name}")
+        commit_id = `git log origin/#{repo_target_branch} -n 1 --pretty=format:"%H"`
+        if !commit_id.nil?
+          repo_commite_id[repo_name] = commit_id
+        end
+      end
+  
+      podfile_path = "#{repo_manager.root_path}/#{main_repo_name}/AirBrushPodfiles/pix_ab_component.rb" 
+      podfile_content = File.read(podfile_path)
+      updated_repo_names = []
+      repo_commite_id.each do |key, value|
+        reg = /#{key}.+:commit => '(.+)'/
+        podfile_content.match(reg)
+        if $1 != value
+          podfile_content.sub!($1,value)
+          updated_repo_names.push(key)
+        end
+      end
+  
+      if !updated_repo_names.empty?
+        File.open(podfile_path, "w+") do |aFile|
+          aFile.syswrite(podfile_content)
+        end
+      end
+  
+      system "mbox pod install --repo-update"
+      Utilities.check_shell_result("Error: execute `mbox pod install --repo-update` failed")
+  
+      @updated_repo_names = updated_repo_names
+    end
+  
+    # 编译
+    def build
+      workspace_name = nil
+      expect_ext = ".xcworkspace"
+      Dir.foreach(Dir.pwd) do |entry|
+        if File.extname(entry) == expect_ext
+          workspace_name = entry
+          break
+        end
+      end
+  
+      if workspace_name.nil?
+        puts "Error: no workspace available for build".red
+        exit(1)
+      end
+  
+      scheme = File.basename(workspace_name, expect_ext)
+  
+      stdout, stderr, status = Open3.capture3("xcodebuild -workspace #{workspace_name} -scheme #{scheme} -showdestinations")
+      reg = /{ platform:iOS,.+name:(?!Any iOS Devic)(.*) }/
+      destinations = []
+      stdout.scan(reg) do |match|
+         destinations.push(match.first)
+      end
+      selected_item_name = nil
+      if destinations.empty?
+        puts "Error: no devices available for build".red
+        exit(1)
+      elsif destinations.length == 1
+        selected_item_name = destinations.first
+      else
+        selected_item_name = Utilities.display_choose_list(destinations, [destinations.last],"设备","请选择编译设备").first
+      end
+      if selected_item_name.nil?
+        exit(1)
+      end
+  
+      system("xcodebuild -workspace #{workspace_name} -scheme #{scheme} -configuration Debug -destination 'platform=iOS,name=#{selected_item_name}'")
+      Utilities.check_shell_result("Error: xcode build failed")
+    end
+  
+  end
+  
+end
+

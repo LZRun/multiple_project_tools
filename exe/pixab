@@ -1,0 +1,30 @@
+
+#!/usr/bin/env ruby
+# encoding: UTF-8
+
+require_relative '../lib/MergeRequest.rb'
+require_relative '../lib/ComponentSynchronizer.rb'
+
+case ARGV[0]
+when 'merge'
+  Pixab::MergeRequest.new(Pixab::RepoManager.new, ARGV[1..-1]).run
+when 'sync'
+  repo_manager = Pixab::RepoManager.new
+  Pixab::ComponentSynchronizer.new(repo_manager, ARGV[1..-1]).run
+
+  is_need_commit = Pixab::Utilities.display_default_dialog("是否需要提交代码")
+  if is_need_commit
+    commands = ["-m"]
+    if !synchronizer.updated_repo_names.empty?
+      default_commit_msg = "[Feature]Update"
+      updated_repo_names.each do |repo_name|
+        default_commit_msg += " #{repo_name}"
+      end
+      commands.push("--commit-m")
+      commands.push(default_commit_msg)
+    end
+    Pixab::MergeRequest.new(repo_manager, commands).run
+  end
+else
+  puts "Invalid command".red
+end
