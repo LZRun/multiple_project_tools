@@ -125,5 +125,3 @@ module Pixab
 
 end
 
-Pixab::Localization.new.run(ARGV)
-
