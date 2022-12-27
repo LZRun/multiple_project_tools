@@ -32,8 +32,7 @@ module Pixab
 
     def dir_name(locale)
       return ''
-    end
-
+    end 
 
   end
 
@@ -80,9 +79,14 @@ module Pixab
   class LocalizationAndroid < LocalizationPlatform
 
     File_name = "strings_ph.xml"
+    Exclude_locales = ['zh-Hant']
 
     def run(localized_info_category, commands)
       localized_info_category.each do |locale, localized_infos|
+        if Exclude_locales.include?(locale)
+          next
+        end
+
         content_dir_path = dir_name(locale)
         if !Dir.exists?(content_dir_path)
           FileUtils.mkdir_p content_dir_path
@@ -90,7 +94,7 @@ module Pixab
         content_file_path = "#{content_dir_path}/#{File_name}"
         File.open(content_file_path, @file_mode) do |aFile|
           aFile.syswrite("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")
-          aFile.syswrite("<resources xmlns:tools=\"http://schemas.android.com/tools\">\n")
+          aFile.syswrite("<resources>\n")
           localized_infos.each do |localized_info|
             aFile.syswrite("  <string name=\"#{localized_info['key']}\">#{localized_info['value']}</string>\n")
           end
@@ -109,9 +113,9 @@ module Pixab
         suffix = '-fr-rFR'
       when 'ru'
         suffix = '-ru-rRU'
-      when 'zh-hans'
+      when 'zh-Hans'
         suffix = '-zh-rCN'
-      when 'zh-hant'
+      when 'tr'
         suffix = '-tr-rTR'
       else
         suffix = "-#{locale}"

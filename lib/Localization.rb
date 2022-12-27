@@ -10,6 +10,8 @@ module Pixab
   class Localization
 
     ACCESS_TOKEN = '4f5379d0d26b9a2ef167b3fc84fb47f1fe2b4e87b1f95d8f5fc15269132051ef'
+    Project_AirBrush = '546ed49bfca9d3a4f51ccf2c8c279d0f'
+    Project_AirBrush_Video = 'fcb3e858aa1d991e8c21222f3696ce67'
 
     attr_accessor :projects, :tags, :platform, :mode
 
@@ -21,14 +23,33 @@ module Pixab
       commands.each_index do |index|
         command = commands[index]
         case command
-        when "--projects"
-          @projects = commands[index + 1]
-        when "--tags" 
+        when '--project-ab'
+          add_project(Project_AirBrush)
+        when '--project-abv'
+          add_project(Project_AirBrush_Video)
+        when '--tags' 
           @tags = commands[index + 1]
-        when "--platform"
+        when '--platform'
           @platform = commands[index + 1]
-        when "--mode"
+        when '--mode'
           @mode = commands[index + 1]
+        when '--ab-android'
+          @projects = "#{Project_AirBrush},#{Project_AirBrush_Video}"
+          @platform = 'android'
+        when '--ab-iOS'
+          @projects = "#{Project_AirBrush}"
+          @mode = 'add'
+        when '--abv-iOS'
+          @projects = "#{Project_AirBrush_Video}"
+          @mode = 'add'
+        end
+      end
+
+      commands.each_index do |index|
+        command = commands[index]
+        case command
+        when '--projects'
+          @projects = commands[index + 1] 
         end
       end
 
@@ -91,6 +112,15 @@ module Pixab
       end
     end
     
+    # 添加拉取的project
+    def add_project(project_id)
+      if projects.nil?
+        @projects = "#{project_id}"
+      else
+        @projects += ",#{project_id}"
+      end
+    end
+
   end
 
 end
