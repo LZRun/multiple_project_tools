@@ -11,7 +11,8 @@ when 'merge'
   Pixab::MergeRequest.new(Pixab::RepoManager.new, ARGV[1..-1]).run
 when 'sync'
   repo_manager = Pixab::RepoManager.new
-  Pixab::ComponentSynchronizer.new(repo_manager, ARGV[1..-1]).run
+  synchronizer = Pixab::ComponentSynchronizer.new(repo_manager, ARGV[1..-1])
+  synchronizer.run
 
   is_need_commit = Pixab::Utilities.display_default_dialog("是否需要提交代码")
   if is_need_commit
