@@ -19,7 +19,7 @@ when 'sync'
     commands = ["-m"]
     if !synchronizer.updated_repo_names.empty?
       default_commit_msg = "[Feature]Update"
-      updated_repo_names.each do |repo_name|
+      synchronizer.updated_repo_names.each do |repo_name|
         default_commit_msg += " #{repo_name}"
       end
       commands.push("--commit-m")
