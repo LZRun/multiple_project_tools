@@ -105,6 +105,7 @@ module Pixab
         repo_name = repo["name"]
         repo_target_branch = repo["target_branch"]
         FileUtils.cd("#{repo_manager.root_path}/#{repo_name}")
+        `git fetch origin #{repo_target_branch}`
         commit_id = `git log origin/#{repo_target_branch} -n 1 --pretty=format:"%H"`
         if !commit_id.nil?
           repo_commite_id[repo_name] = commit_id
