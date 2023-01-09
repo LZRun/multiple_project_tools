@@ -27,21 +27,18 @@ module Pixab
           add_project(Project_AirBrush)
         when '--project-abv'
           add_project(Project_AirBrush_Video)
-        when '--tags' 
-          @tags = commands[index + 1]
-        when '--platform'
-          @platform = commands[index + 1]
-        when '--mode'
-          @mode = commands[index + 1]
         when '--ab-android'
           @projects = "#{Project_AirBrush},#{Project_AirBrush_Video}"
           @platform = 'android'
+          @tags = 'android'
         when '--ab-iOS'
           @projects = "#{Project_AirBrush}"
           @mode = 'add'
+          @tags = 'iOS'
         when '--abv-iOS'
           @projects = "#{Project_AirBrush_Video}"
           @mode = 'add'
+          @tags = 'iOS'
         end
       end
 
@@ -50,6 +47,12 @@ module Pixab
         case command
         when '--projects'
           @projects = commands[index + 1] 
+        when '--tags' 
+          @tags = commands[index + 1]
+        when '--platform'
+          @platform = commands[index + 1]
+        when '--mode'
+          @mode = commands[index + 1]
         end
       end
 
@@ -70,14 +73,23 @@ module Pixab
       localized_info_category = {}
       project_array = projects.split(',')
       project_array.each do |project|
-        command = "\"https://api.phrase.com/v2/projects/#{project}/translations" 
-        if !tags.nil?
-          command += "?q=tags:#{tags}"
-        end
-        command += "\" -u #{ACCESS_TOKEN}:"
-        localized_string = `curl #{command}`
-        localized_info_category.merge!(assemble_data(localized_string)) do |key, oldval, newval|
-          oldval + newval
+        page_number = 1
+        while true
+          link = "\"https://api.phrase.com/v2/projects/#{project}/translations?page=#{page_number}&per_page=100&sort=created_at" 
+          if !tags.nil?
+            link += "&q=tags:#{tags}"
+          end
+          link += "\""
+          access_token = "-u #{ACCESS_TOKEN}:"
+          localized_string = `curl #{link} #{access_token}`
+          per_localized_info_category = assemble_data(localized_string)
+          if per_localized_info_category.empty?
+            break
+          end
+          localized_info_category.merge!(per_localized_info_category) do |key, oldval, newval|
+            oldval + newval
+          end
+          page_number += 1
         end
       end
       return localized_info_category
@@ -85,8 +97,12 @@ module Pixab
 
     # 重新组装本地化数据
     def assemble_data(string)
-      objects = JSON.parse(string)
+      if string.nil? || string.empty?
+        return {}
+      end
+
       localized_info_category = {}
+      objects = JSON.parse(string)
       objects.each do |object|
         locale_name = object["locale"]["name"]
         localized_infos = localized_info_category[locale_name]

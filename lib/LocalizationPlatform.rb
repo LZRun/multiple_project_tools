@@ -16,15 +16,16 @@ module Pixab
     end
 
     def resolve_commands(commands)
-      if !commands.nil?
-        commands.each_index do |index|
-          command = commands[index]
-          case command
-          when "--mode"
-            mode = commands[index + 1]
-            if mode == 'add'
-              @file_mode = 'a+'
-            end
+      if commands.nil?
+        return
+      end
+      commands.each_index do |index|
+        command = commands[index]
+        case command
+        when "--mode"
+          mode = commands[index + 1]
+          if mode == 'add'
+            @file_mode = 'a+'
           end
         end
       end
@@ -48,18 +49,29 @@ module Pixab
     def run(localized_info_category, commands)
       super(localized_info_category, commands)
 
+      begin_prompt = "\n// Created from phrase api <<<<<<<<<< begin\n"
+      end_prompt = "\n// Created from phrase api <<<<<<<<<< end\n"
+
       localized_info_category.each do |locale, localized_infos|
         content_dir_path = dir_name(locale)
         if !Dir.exists?(content_dir_path)
           FileUtils.mkdir_p content_dir_path
         end
         content_file_path = "#{content_dir_path}/#{File_name}"
-        File.open(content_file_path, @file_mode) do |aFile|
-          aFile.syswrite("\n// Created from phrase api <<<<<<<<<< begin\n")
-          localized_infos.each do |localized_info|
-            aFile.syswrite("\n\"#{localized_info['key']}\" = \"#{localized_info['value']}\";\n")
+        if @file_mode == 'a+' and File::exists?(content_file_path)
+          # 移除以前脚本添加的本地化文案
+          content = File.read(content_file_path)
+          content = content.sub(/#{begin_prompt}.*#{end_prompt}/m, '')
+          File.open(content_file_path, 'w+') do |file|
+            file.syswrite(content)
           end
-          aFile.syswrite("\n// Created from phrase api <<<<<<<<<< end\n")
+        end
+        File.open(content_file_path, @file_mode) do |file|
+          file.syswrite(begin_prompt)
+          localized_infos.each do |localized_info|
+            file.syswrite("\n\"#{localized_info['key']}\" = \"#{localized_info['value']}\";\n")
+          end
+          file.syswrite(end_prompt)
         end
       end
     end
@@ -92,13 +104,13 @@ module Pixab
           FileUtils.mkdir_p content_dir_path
         end
         content_file_path = "#{content_dir_path}/#{File_name}"
-        File.open(content_file_path, @file_mode) do |aFile|
-          aFile.syswrite("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")
-          aFile.syswrite("<resources>\n")
+        File.open(content_file_path, @file_mode) do |file|
+          file.syswrite("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")
+          file.syswrite("<resources>\n")
           localized_infos.each do |localized_info|
-            aFile.syswrite("  <string name=\"#{localized_info['key']}\">#{localized_info['value']}</string>\n")
+            file.syswrite("  <string name=\"#{localized_info['key']}\">#{localized_info['value']}</string>\n")
           end
-          aFile.syswrite("</resources>\n")
+          file.syswrite("</resources>\n")
         end
       end
     end
