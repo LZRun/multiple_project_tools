@@ -2,6 +2,7 @@
 #!/usr/bin/env ruby
 # encoding: UTF-8
 
+require_relative "../lib/pixab/version"
 require_relative '../lib/MergeRequest.rb'
 require_relative '../lib/ComponentSynchronizer.rb'
 require_relative '../lib/Localization.rb'
@@ -32,6 +33,8 @@ when 'localize'
   Pixab::Localization.new.run(ARGV[1..-1])
 when 'package'
   Pixab::Package.new.run
+when '--version'
+  puts Pixab::VERSION
 else
   puts "Invalid command".red
 end
