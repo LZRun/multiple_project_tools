@@ -11,8 +11,14 @@ module Pixab
   
   class << Utilities
   
-    def check_shell_result(error_msg = nil, success = nil)
+
+    def is_shell_execute_success(success = nil)
       is_success = success.nil? ? $?.to_i == 0 : success 
+      return is_success
+    end
+
+    def check_shell_result(error_msg = nil, success = nil)
+      is_success = is_shell_execute_success(success)
       if is_success 
         return
       end
@@ -20,6 +26,14 @@ module Pixab
         puts error_msg.red
       end
       exit(1)
+    end
+
+    def execute_shell(commad)
+      if commad.nil?
+        return false
+      end
+      `#{commad}`
+      return is_shell_execute_success
     end
     
     def display_default_dialog(default_text)

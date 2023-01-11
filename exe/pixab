@@ -5,6 +5,7 @@
 require_relative '../lib/MergeRequest.rb'
 require_relative '../lib/ComponentSynchronizer.rb'
 require_relative '../lib/Localization.rb'
+require_relative '../lib/Package.rb'
 
 case ARGV[0]
 when 'merge'
@@ -29,6 +30,8 @@ when 'sync'
   end
 when 'localize'
   Pixab::Localization.new.run(ARGV[1..-1])
+when 'package'
+  Pixab::Package.new.run
 else
   puts "Invalid command".red
 end
