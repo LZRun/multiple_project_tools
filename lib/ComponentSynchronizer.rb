@@ -57,12 +57,14 @@ module Pixab
     def replace_local_to_remote
       active_repo_names = ""
       repos.each do |repo|
-        components = repo["components"]
         is_avtive = true
-        components.each do |component|
-          if component["tool"] == "CocoaPods"
-            is_avtive = !component["active"].empty?
-            break
+        components = repo["components"]
+        if !components.nil?
+          components.each do |component|
+            if component["tool"] == "CocoaPods"
+              is_avtive = !component["active"].empty?
+              break
+            end
           end
         end
         if is_avtive 
