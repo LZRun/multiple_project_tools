@@ -10,25 +10,32 @@ module Pixab
   
   class MergeRequest
 
-    attr_accessor :repo_type, :default_commit_msg
+    attr_accessor :repo_type, :default_commit_msg, :need_merge_origin, :need_creat_mr
     attr_reader :repo_manager, :repos, :command_options
   
     def initialize(repo_manager = RepoManager.new, commands = nil)
       @repo_manager = repo_manager
       @repo_type = 2
       @default_commit_msg = "[Feature]"
+      @need_merge_origin = true
+      @need_creat_mr = true
+
       if commands.nil?
         return
       end
       commands.each_index do |index|
         command = commands[index]
         case command
-        when  "-a"
+        when "-a"
           @repo_type = 0
         when "-m"
           @repo_type = 1
         when "--commit-m"
           @default_commit_msg = commands[index + 1]
+        when "--no-merge-origin"
+          @need_merge_origin = false
+        when "--no-mr"
+          @need_creat_mr = false
         else
         end
       end
@@ -85,8 +92,7 @@ module Pixab
   
     # 合并代码
     def merge()
-      is_need_merge = Utilities.display_default_dialog("是否需要合并远程代码到本地？")
-      if is_need_merge 
+      if need_merge_origin 
         repos.each do |repo|
           system "mbox merge --repo #{repo["name"]}"
         end
@@ -95,30 +101,31 @@ module Pixab
   
     # 推送MR
     def push_and_create_mr()
-      is_need_creat_mr = Utilities.display_default_dialog("是否需要推送到远程并创建MR？")
-      if is_need_creat_mr 
-        reviewers = Utilities.display_dialog("请输入审核人员ID：\n子琰(979) 丕臻(1385) 再润(1569) 思保(1922)", "979 1385").split()
-        mr_request_assign = ""
-        reviewers.each do |reviewer|
+      if !need_creat_mr
+        return
+      end
+      
+      reviewers = Utilities.display_dialog("正在创建Merge Request\n请输入审核人员ID：\n子琰(979) 丕臻(1385) 再润(1569) 思保(1922)", "979 1385").split()
+      mr_request_assign = ""
+      reviewers.each do |reviewer|
         mr_request_assign += " -o merge_request.assign=#{reviewer}"
-        end
+      end
   
-        mr_source_branch = "-o merge_request.remove_source_branch"
-        repos.each do |repo|
-          repo_name = repo["name"]
-          puts repo_name
-          repo_target_branch = repo["target_branch"]
-          repo_last_branch = repo["last_branch"]
+      mr_source_branch = "-o merge_request.remove_source_branch"
+      repos.each do |repo|
+        repo_name = repo["name"]
+        puts repo_name
+        repo_target_branch = repo["target_branch"]          
+        repo_last_branch = repo["last_branch"]
         
-          FileUtils.cd("#{repo_manager.root_path}/#{repo_name}")
-          log_content = `git log origin/#{repo_target_branch}..#{repo_last_branch} --pretty=format:"%H"`
-          if log_content.empty?
-            next
-          end
-          mr_target = "-o merge_request.target=#{repo_target_branch}"
-          # mr_title = "-o merge_request.title=#{repo_last_branch}"
-          `git push -o merge_request.create #{mr_target} #{mr_source_branch} #{mr_request_assign}`
+        FileUtils.cd("#{repo_manager.root_path}/#{repo_name}")
+        log_content = `git log origin/#{repo_target_branch}..#{repo_last_branch} --pretty=format:"%H"`
+        if log_content.empty?
+          next          
         end
+        mr_target = "-o merge_request.target=#{repo_target_branch}"
+        # mr_title = "-o merge_request.title=#{repo_last_branch}"
+        `git push -o merge_request.create #{mr_target} #{mr_source_branch} #{mr_request_assign}`
       end
     end
   
