@@ -5,6 +5,7 @@ require "fileutils"
 require 'colored2'
 require_relative './Utilities.rb'
 require_relative './RepoManager.rb'
+require_relative './GitUtils.rb'
 
 module Pixab
   
@@ -104,28 +105,40 @@ module Pixab
       if !need_creat_mr
         return
       end
-      
+
+      feature_branch = repo_manager.feature_branch
+
       reviewers = Utilities.display_dialog("正在创建Merge Request\n请输入审核人员ID：\n子琰(979) 丕臻(1385) 再润(1569) 思保(1922)", "979 1385").split()
       mr_request_assign = ""
       reviewers.each do |reviewer|
         mr_request_assign += " -o merge_request.assign=#{reviewer}"
       end
-  
       mr_source_branch = "-o merge_request.remove_source_branch"
+
       repos.each do |repo|
         repo_name = repo["name"]
-        puts repo_name
-        repo_target_branch = repo["target_branch"]          
-        repo_last_branch = repo["last_branch"]
-        
+        puts "\n[#{repo_name}]"
         FileUtils.cd("#{repo_manager.root_path}/#{repo_name}")
-        log_content = `git log origin/#{repo_target_branch}..#{repo_last_branch} --pretty=format:"%H"`
+        current_branch = GitUtils.current_branch
+        if current_branch != feature_branch
+          puts "\n[!] The repo #{repo_name} is not in feature branch `#{feature_branch}`. Skip it.".yellow
+          next
+        end
+        
+        repo_target_branch = repo["target_branch"]          
+        
+        log_content = `git log origin/#{repo_target_branch}..#{current_branch} --pretty=format:"%H"`
         if log_content.empty?
+          puts "\n[!] branch `#{current_branch}` is same as branch `origin/#{repo_target_branch}`. Skip it.".yellow
           next          
         end
         mr_target = "-o merge_request.target=#{repo_target_branch}"
         # mr_title = "-o merge_request.title=#{repo_last_branch}"
-        `git push -o merge_request.create #{mr_target} #{mr_source_branch} #{mr_request_assign}`
+        commad = "git push"
+        if repo["last_branch"].nil?
+          commad += " --set-upstream origin #{current_branch}"
+        end
+        `#{commad} -o merge_request.create #{mr_target} #{mr_source_branch} #{mr_request_assign}`
       end
     end
   

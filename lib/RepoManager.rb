@@ -8,7 +8,7 @@ module Pixab
 
   class RepoManager
   
-    attr_reader :root_path, :repos
+    attr_reader :root_path, :feature
   
     def initialize()
       read_repo_infos
@@ -27,10 +27,13 @@ module Pixab
         puts "Error: You are currently in Free Mode".red
         exit(1)
       end
-      feature = obj["features"][current_feature_name.downcase]
-      @repos = feature["repos"]
+      @feature = obj["features"][current_feature_name.downcase]
     end
   
+    def repos
+     feature["repos"]
+    end
+
     def main_repo
       repos.first
     end
@@ -42,6 +45,14 @@ module Pixab
         return sub_repos
       end
       return []
+    end
+
+    def feature_name
+      feature["name"]
+    end
+
+    def feature_branch
+      feature["branch_prefix"] + feature_name
     end
   
   end

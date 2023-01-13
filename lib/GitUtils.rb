@@ -82,7 +82,7 @@ module Pixab
   
     # 获取当前分支
     def current_branch
-      branch = `git rev-parse --abbrev-ref HEAD`
+      branch = `git rev-parse --abbrev-ref HEAD`.chomp
       return branch
     end
 
