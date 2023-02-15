@@ -11,13 +11,14 @@ module Pixab
 
   class ComponentSynchronizer
 
-    attr_accessor :is_need_build, :is_need_remote_repo
+    attr_accessor :is_need_build, :is_need_remote_repo, :is_need_pod_install
     attr_reader :repo_manager, :repos, :main_repo_name, :updated_repo_names
   
     def initialize(repo_manager = RepoManager.new, commands = nil)
       @repo_manager = repo_manager
       @is_need_build = false
       @is_need_remote_repo = false
+      @is_need_pod_install = true
       if commands.nil?
         return
       end
@@ -28,6 +29,8 @@ module Pixab
           @is_need_build = true
         when "--remote-repo"
           @is_need_remote_repo = true
+        when "--no-pod-install"
+          @is_need_pod_install = false
         else
         end
       end
@@ -145,9 +148,11 @@ module Pixab
         end
       end
   
-      system "mbox pod install --repo-update"
-      Utilities.check_shell_result("Error: execute `mbox pod install --repo-update` failed")
-  
+      if is_need_pod_install
+        system "mbox pod install --repo-update"
+        Utilities.check_shell_result("Error: execute `mbox pod install --repo-update` failed")
+      end
+
       @updated_repo_names = updated_repo_names
     end
   
