@@ -11,20 +11,23 @@ module Pixab
 
   class ComponentSynchronizer
 
-    attr_accessor :is_need_build
+    attr_accessor :is_need_build, :is_need_remote_repo
     attr_reader :repo_manager, :repos, :main_repo_name, :updated_repo_names
   
     def initialize(repo_manager = RepoManager.new, commands = nil)
       @repo_manager = repo_manager
       @is_need_build = false
+      @is_need_remote_repo = false
       if commands.nil?
         return
       end
       commands.each_index do |index|
         command = commands[index]
         case command
-        when  "--build"
+        when "--build"
           @is_need_build = true
+        when "--remote-repo"
+          @is_need_remote_repo = true
         else
         end
       end
@@ -32,14 +35,24 @@ module Pixab
   
     def run
       read_repo_infos
-      puts "\n》》》》》正在将本地调试仓替换为远程仓 》》》》》》》》》》\n".green
-      active_repo_names = replace_local_to_remote
+
+      active_repo_names = nil
+      if is_need_remote_repo
+        puts "\n》》》》》正在将本地调试仓替换为远程仓 》》》》》》》》》》\n".green
+        active_repo_names = replace_local_to_remote
+      end
+
       puts "\n》》》》》正在合并主工程代码 》》》》》》》》》》》》》》》\n".green
       merge_and_check 
+
       puts "\n》》》》》正在读取最新提交，并更新pod 》》》》》》》》》》\n".green
       replace_podfile
-      puts "\n》》》》》正在将远程仓复原为本地调试仓 》》》》》》》》》》\n".green
-      reset_remote_to_local(active_repo_names)
+
+      if is_need_remote_repo 
+        puts "\n》》》》》正在将远程仓复原为本地调试仓 》》》》》》》》》》\n".green
+        reset_remote_to_local(active_repo_names)
+      end
+
       if is_need_build
         puts "\n》》》》》正在进行Xcode编译 》》》》》》》》》》》》》》》\n".green
         FileUtils.cd("#{repo_manager.root_path}/#{main_repo_name}")
