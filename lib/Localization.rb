@@ -9,7 +9,7 @@ module Pixab
 
   class Localization
 
-    ACCESS_TOKEN = '4f5379d0d26b9a2ef167b3fc84fb47f1fe2b4e87b1f95d8f5fc15269132051ef'
+    ACCESS_TOKEN = 'bdbda2cc022951235808a4f6c7a7330d4de7dcf719650d7d2ceee260e07d3f01'
     Project_AirBrush = '546ed49bfca9d3a4f51ccf2c8c279d0f'
     Project_AirBrush_Video = 'fcb3e858aa1d991e8c21222f3696ce67'
 
