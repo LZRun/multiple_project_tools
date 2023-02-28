@@ -108,7 +108,8 @@ module Pixab
           file.syswrite("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")
           file.syswrite("<resources>\n")
           localized_infos.each do |localized_info|
-            file.syswrite("  <string name=\"#{localized_info['key']}\">#{localized_info['value']}</string>\n")
+            value = localized_info['value'].gsub(/['"\\]/, '\\\\\0')
+            file.syswrite("  <string name=\"#{localized_info['key']}\">#{value}</string>\n")
           end
           file.syswrite("</resources>\n")
         end
