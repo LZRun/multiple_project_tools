@@ -69,7 +69,8 @@ module Pixab
         File.open(content_file_path, @file_mode) do |file|
           file.syswrite(begin_prompt)
           localized_infos.each do |localized_info|
-            file.syswrite("\n\"#{localized_info['key']}\" = \"#{localized_info['value']}\";\n")
+            value = localized_info['value'].gsub(/["]/, '\\\\\0')
+            file.syswrite("\n\"#{localized_info['key']}\" = \"#{value}\";\n")
           end
           file.syswrite(end_prompt)
         end
