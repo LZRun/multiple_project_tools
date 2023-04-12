@@ -77,7 +77,8 @@ module Pixab
         while true
           link = "\"https://api.phrase.com/v2/projects/#{project}/translations?page=#{page_number}&per_page=100&sort=created_at" 
           if !tags.nil?
-            link += "&q=tags:#{tags}"
+            # excluded:false
+            link += "&q=tags:#{tags}%20excluded:false" 
           end
           link += "\""
           access_token = "-u #{ACCESS_TOKEN}:"
