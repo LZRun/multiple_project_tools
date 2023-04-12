@@ -89,6 +89,23 @@ end
 
 module Pixab
 
+  class LocalizationMac < LocalizationiOS
+
+    def dir_name(locale)
+      suffix = locale
+      case locale
+      when 'pt'
+        suffix = 'pt-PT'
+      end
+      return "#{suffix}.lproj"
+    end
+
+  end
+
+end
+
+module Pixab
+
   class LocalizationAndroid < LocalizationPlatform
 
     File_name = "strings_ph.xml"

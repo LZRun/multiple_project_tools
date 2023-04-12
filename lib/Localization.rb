@@ -12,6 +12,7 @@ module Pixab
     ACCESS_TOKEN = 'bdbda2cc022951235808a4f6c7a7330d4de7dcf719650d7d2ceee260e07d3f01'
     Project_AirBrush = '546ed49bfca9d3a4f51ccf2c8c279d0f'
     Project_AirBrush_Video = 'fcb3e858aa1d991e8c21222f3696ce67'
+    Project_AirBrush_Studio = '16a0814854c608d496e8a410f567666b'
 
     attr_accessor :projects, :tags, :platform, :mode
 
@@ -39,6 +40,10 @@ module Pixab
           @projects = "#{Project_AirBrush_Video}"
           @mode = 'add'
           @tags = 'iOS'
+        when '--ab-Mac'
+          @projects = "#{Project_AirBrush_Studio}"
+          @platform = 'Mac'
+          @mode = 'add'
         end
       end
 
@@ -123,6 +128,8 @@ module Pixab
       end
       if platform == 'android'
         LocalizationAndroid.new.run(localized_info_category, platform_commands)
+      elsif platform == 'Mac'
+        LocalizationMac.new.run(localized_info_category, platform_commands)
       else
         LocalizationiOS.new.run(localized_info_category, platform_commands)
       end
