@@ -2,6 +2,7 @@
 # encoding: UTF-8
 
 require "fileutils"
+require_relative './Utilities.rb'
 
 module Pixab
 
@@ -54,7 +55,7 @@ module Pixab
 
       localized_info_category.each do |locale, localized_infos|
         content_dir_path = dir_name(locale)
-        if !Dir.exists?(content_dir_path)
+        if !Utilities.dir_exist(content_dir_path)
           FileUtils.mkdir_p content_dir_path
         end
         content_file_path = "#{content_dir_path}/#{File_name}"
@@ -118,7 +119,7 @@ module Pixab
         end
 
         content_dir_path = dir_name(locale)
-        if !Dir.exists?(content_dir_path)
+        if !Utilities.dir_exist(content_dir_path)
           FileUtils.mkdir_p content_dir_path
         end
         content_file_path = "#{content_dir_path}/#{File_name}"

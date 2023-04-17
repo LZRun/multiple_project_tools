@@ -11,7 +11,6 @@ module Pixab
   
   class << Utilities
   
-
     def is_shell_execute_success(success = nil)
       is_success = success.nil? ? $?.to_i == 0 : success 
       return is_success
@@ -79,6 +78,19 @@ module Pixab
      end
     end
   
+  end
+
+  class << Utilities
+
+    # 判断目录是否存在，已适配2.4以后的版本
+    def dir_exist(path)
+      if Dir.respond_to?(:exist?)
+        return Dir.exist?(path)
+      else
+        return Dir.exists?(path)
+      end
+    end
+
   end
   
 end
