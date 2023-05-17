@@ -118,7 +118,7 @@ module Pixab
         local_key = object['key']
         local_key_name = local_key['name']
         if local_key['plural']
-          local_key_name += ".#{object['plural_suffix']}"
+          local_key_name += "_#{object['plural_suffix']}"
         end
         localized_infos.push({'key' => local_key_name, 'value' => "#{object['content']}"})
       end
