@@ -115,7 +115,12 @@ module Pixab
           localized_infos = []
           localized_info_category[locale_name] = localized_infos
         end
-        localized_infos.push({'key' => "#{object['key']['name']}", 'value' => "#{object['content']}"})
+        local_key = object['key']
+        local_key_name = local_key['name']
+        if local_key['plural']
+          local_key_name += ".#{object['plural_suffix']}"
+        end
+        localized_infos.push({'key' => local_key_name, 'value' => "#{object['content']}"})
       end
       return localized_info_category
     end
