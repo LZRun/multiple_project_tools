@@ -71,7 +71,7 @@ module Pixab
           file.syswrite(begin_prompt)
           localized_infos.each do |localized_info|
             value = localized_info['value'].gsub(/["]/, '\\\\\0')
-            # value = value.gsub(/%s/, '%@')
+            value = value.gsub(/%s/, '%@')
             file.syswrite("\n\"#{localized_info['key']}\" = \"#{value}\";\n")
           end
           file.syswrite(end_prompt)
