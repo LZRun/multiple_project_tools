@@ -33,7 +33,7 @@ module Pixab
           @platform = 'android'
           @tags = 'android'
         when '--ab-iOS'
-          @projects = "#{Project_AirBrush, Project_AirBrush_Video}"
+          @projects = "#{Project_AirBrush},#{Project_AirBrush_Video}"
           @tags = 'iOS'
         when '--abv-iOS'
           @projects = "#{Project_AirBrush_Video}"
