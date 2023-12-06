@@ -1,6 +1,9 @@
 require 'net/http'
 require 'uri'
 require 'zip'
+require 'colored2'
+require 'rexml/document'
+include REXML
 
 module Pixab
 
@@ -29,6 +32,7 @@ module Pixab
           @tags = 'android'
           @collections = 'AirBrush'
         when '--ab-iOS'
+          @platform = 'iOS'
           @tags = 'iOS'
           @collections = 'AirBrush'
         end
@@ -58,8 +62,8 @@ module Pixab
       puts "\n》》》》》正在下载本地化文案 》》》》》》》》》》\n".green
       if download_zip_file_with_retry(download_url, export_id)
         puts "\n》》》》》正在替换本地化文案 》》》》》》》》》》\n".green
-        unzip_file(Localization_FILE_NAME, extract_location)
-        puts "Export ID #{export_id} has been downloaded and extracted."
+        unzip_file(Localization_FILE_NAME)
+        puts "\n》》》》》本地化文案更新已完成 》》》》》》》》》》\n".green
       end
 
     end
@@ -81,6 +85,16 @@ module Pixab
 
     # 第二步：循环尝试下载ZIP文件
     def download_zip_file_with_retry(download_url, export_id, max_retries=30)
+      # 加载动画字符
+      spinner = Enumerator.new do |e|
+        loop do
+          e.yield '|'
+          e.yield '/'
+          e.yield '-'
+          e.yield '\\'
+        end
+      end
+
       retries = 0
       while retries < max_retries
         uri = URI("#{download_url}/#{export_id}")
@@ -95,7 +109,12 @@ module Pixab
           File.open(Localization_FILE_NAME, "wb") { |file| file.write(response.body) }
           return true
         else
-          sleep 1 # 等待1秒后重试
+          # 等待1秒后重试
+          # 打印动画字符
+          print "\r#{spinner.next}"
+          sleep 0.5
+          print "\r#{spinner.next}"
+          sleep 0.5
           retries += 1
         end
       end
@@ -107,16 +126,52 @@ module Pixab
     # 第三步：解压缩ZIP文件
     def unzip_file(zip_path)
       Zip::File.open(zip_path) do |zip_file|
-        zip_file.each do |f|
-          f_path = f.name
-          FileUtils.mkdir_p(File.dirname(f_path))
-          zip_file.extract(f,f_path) { true }
+        if platform == 'android'
+          unzip_file_android(zip_file)
+        else
+          unzip_file_iOS(zip_file)
         end
       end
 
       File.delete(zip_path) if File.exist?(zip_path)
 
     end
+
+    def unzip_file_iOS(zip_file)
+      zip_file.each do |f|
+        if is_ignored_file_path(f.name)
+          next
+        end
+        f_path = extract_localization_file_path(f.name)
+        FileUtils.mkdir_p(File.dirname(f_path))
+        content = f.get_input_stream.read
+        localization_content = content.gsub(/=\s*".*";/) do |match|
+          match.gsub('%s', '%@')
+        end
+        File.write(f_path, localization_content)
+      end
+    end
+
+    def unzip_file_android(zip_file)
+      zip_file.each do |f|
+        if is_ignored_file_path(f.name)
+          next
+        end
+        f_path = extract_localization_file_path(f.name)
+        FileUtils.mkdir_p(File.dirname(f_path))
+        content = f.get_input_stream.read
+        document = Document.new(content)
+        # 遍历所有文本节点
+        XPath.each(document, '//text()') do |text_node|
+          # 对文本中的单双引号进行转义处理
+          text_node.value = text_node.value.gsub(/['"]/, '\0')
+        end
+        # 将修改后的XML内容写入新文件
+        File.open(f_path, 'w') do |file|
+          document.write(file)
+        end
+      end
+    end 
 
     def generate_export_params()
 
@@ -128,11 +183,11 @@ module Pixab
       }
 
       if !platform.nil?
-        format
-        template
+        format = nil
+        template = nil
         if platform == 'android'
           format = 'android-xml'
-          template = 'values-{LOCALE:ANDROID}/strings_ph.xml'
+          template = '{LOCALE:ANDROID}/strings_ph.xml'
         else
           format = 'ios-strings'
           template = '{LOCALE:IOS}.lproj/Localizable.strings'
@@ -146,6 +201,42 @@ module Pixab
       end
 
       return export_params
+    end
+
+    def extract_localization_file_path(zip_file_path)
+      if platform.nil? || platform != 'android'
+        return zip_file_path
+      end
+
+      
+      path = File.dirname(zip_file_path)
+      localization = ''
+      case path
+      when 'en'
+        localization = ''
+      when 'fr'
+        localization = '-fr-rFR'
+      when 'ru'
+        localization = '-ru-rRU'
+      when 'zh-rHans'
+        localization = '-zh-rCN'
+      when 'tr'
+        localization = '-tr-rTR'
+      when 'pt-rBR'
+        localization = '-pt'
+      else 
+        localization = "-#{path}"
+      end
+      return "values#{localization}/#{File.basename(zip_file_path)}"
+    end
+
+    def is_ignored_file_path(file_path)
+      if platform != 'android'
+        return false
+      end
+
+      path = File.dirname(file_path)
+      return path == 'zh-rHant' ? true : false
     end
 
   end

@@ -32,11 +32,11 @@ when 'sync'
     end
     Pixab::MergeRequest.new(repo_manager, commands).run
   end
-when 'localize'
+when 'localizePhrase'
   Pixab::Localization.new.run(ARGV[1..-1])
 when 'package'
   Pixab::Package.new.run
-when 'localizeSmartcat'
+when 'localize'
   Pixab::LocalizationSmartcat.new.run(ARGV[1..-1])
 else
   puts "Invalid command".red
