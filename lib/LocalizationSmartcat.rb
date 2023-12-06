@@ -2,8 +2,7 @@ require 'net/http'
 require 'uri'
 require 'zip'
 require 'colored2'
-require 'rexml/document'
-include REXML
+require 'nokogiri'
 
 module Pixab
 
@@ -160,16 +159,13 @@ module Pixab
         f_path = extract_localization_file_path(f.name)
         FileUtils.mkdir_p(File.dirname(f_path))
         content = f.get_input_stream.read
-        document = Document.new(content)
-        # 遍历所有文本节点
-        XPath.each(document, '//text()') do |text_node|
-          # 对文本中的单双引号进行转义处理
-          text_node.value = text_node.value.gsub(/['"]/, '\0')
+        document = Nokogiri::XML(content)
+        document.traverse do |node|
+          if node.text?
+            node.content = node.content.gsub(/['"]/, '\\\\\0')
+          end
         end
-        # 将修改后的XML内容写入新文件
-        File.open(f_path, 'w') do |file|
-          document.write(file)
-        end
+        File.write(f_path, document.to_xml)
       end
     end 
 
