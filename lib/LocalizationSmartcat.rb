@@ -14,6 +14,7 @@ module Pixab
     Localization_FILE_NAME = 'Localization.zip'
 
     Project_AirBrush = '6cd2db15-6325-43ae-9087-f78aca9bec9a'
+    Project_AirBrushVideo = '16cbeffd-bb6e-46e8-a32e-9c79d23a796f'
 
     attr_accessor :projects, :tags, :platform, :collections
 
@@ -34,6 +35,14 @@ module Pixab
           @platform = 'iOS'
           @tags = 'iOS'
           @collections = 'AirBrush'
+        when '--abv-iOS'
+          @projects = Project_AirBrushVideo
+          @platform = 'iOS'
+          @tags = 'iOS'
+        when '--abv-android'
+          @projects = Project_AirBrushVideo
+          @platform = 'android'
+          @tags = 'android'
         end
       end
 
@@ -144,10 +153,12 @@ module Pixab
         f_path = extract_localization_file_path(f.name)
         FileUtils.mkdir_p(File.dirname(f_path))
         content = f.get_input_stream.read
-        localization_content = content.gsub(/=\s*".*";/) do |match|
-          match.gsub('%s', '%@')
+        if projects == Project_AirBrush
+          content = content.gsub(/=\s*".*";/) do |match|
+            match.gsub('%s', '%@')
+          end
         end
-        File.write(f_path, localization_content)
+        File.write(f_path, content)
       end
     end
 
@@ -183,7 +194,11 @@ module Pixab
         template = nil
         if platform == 'android'
           format = 'android-xml'
-          template = '{LOCALE:ANDROID}/strings_ph.xml'
+          if projects == Project_AirBrush
+            template = '{LOCALE:ANDROID}/strings_ph.xml'
+          else
+            template = '{LOCALE:ANDROID}/strings.xml'
+          end
         else
           format = 'ios-strings'
           template = '{LOCALE:IOS}.lproj/Localizable.strings'
@@ -200,39 +215,75 @@ module Pixab
     end
 
     def extract_localization_file_path(zip_file_path)
-      if platform.nil? || platform != 'android'
-        return zip_file_path
+      case projects
+      when Project_AirBrush
+        if platform.nil? || platform != 'android'
+          return zip_file_path
+        end
+
+        path = File.dirname(zip_file_path)
+        localization = ''
+        case path
+        when 'en'
+          localization = ''
+        when 'fr'
+          localization = '-fr-rFR'
+        when 'ru'
+          localization = '-ru-rRU'
+        when 'zh-rHans'
+          localization = '-zh-rCN'
+        when 'tr'
+          localization = '-tr-rTR'  
+        when 'pt-rBR'
+          localization = '-pt'
+        else 
+          localization = "-#{path}"
+        end
+        return "values#{localization}/#{File.basename(zip_file_path)}"
+      
+      when Project_AirBrushVideo
+        if platform.nil?
+          return zip_file_path
+        end
+
+        case platform 
+        when 'android'
+          path = File.dirname(zip_file_path)
+          localization = ''
+          case path
+          when 'en'
+            localization = ''
+          when 'zh-rHans'
+            localization = '-zh-rCN' 
+          when 'zh-rHant'
+            localization = '-zh-rHK'
+          else 
+            localization = "-#{path}"
+          end
+          return "values#{localization}/#{File.basename(zip_file_path)}"
+        when 'iOS'
+          path = File.dirname(zip_file_path)
+          localization = zip_file_path
+          case path
+          when 'pt-PT.lproj'
+            localization = File.join('pt.lproj', File.basename(zip_file_path))
+          end
+          return localization
+        end
       end
 
-      
-      path = File.dirname(zip_file_path)
-      localization = ''
-      case path
-      when 'en'
-        localization = ''
-      when 'fr'
-        localization = '-fr-rFR'
-      when 'ru'
-        localization = '-ru-rRU'
-      when 'zh-rHans'
-        localization = '-zh-rCN'
-      when 'tr'
-        localization = '-tr-rTR'
-      when 'pt-rBR'
-        localization = '-pt'
-      else 
-        localization = "-#{path}"
-      end
-      return "values#{localization}/#{File.basename(zip_file_path)}"
     end
 
     def is_ignored_file_path(file_path)
-      if platform != 'android'
-        return false
+      case projects
+      when Project_AirBrush
+        return false unless platform == 'android'
+
+        path = File.dirname(file_path)
+        return path == 'zh-rHant' ? true : false
       end
 
-      path = File.dirname(file_path)
-      return path == 'zh-rHant' ? true : false
+      return false
     end
 
   end
