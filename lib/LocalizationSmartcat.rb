@@ -92,7 +92,7 @@ module Pixab
     end
 
     # 第二步：循环尝试下载ZIP文件
-    def download_zip_file_with_retry(download_url, export_id, max_retries=30)
+    def download_zip_file_with_retry(download_url, export_id, max_retries=60)
       retries = 0
       while retries < max_retries
         uri = URI("#{download_url}/#{export_id}")
