@@ -93,16 +93,6 @@ module Pixab
 
     # 第二步：循环尝试下载ZIP文件
     def download_zip_file_with_retry(download_url, export_id, max_retries=30)
-      # 加载动画字符
-      spinner = Enumerator.new do |e|
-        loop do
-          e.yield '|'
-          e.yield '/'
-          e.yield '-'
-          e.yield '\\'
-        end
-      end
-
       retries = 0
       while retries < max_retries
         uri = URI("#{download_url}/#{export_id}")
@@ -117,13 +107,11 @@ module Pixab
           File.open(Localization_FILE_NAME, "wb") { |file| file.write(response.body) }
           return true
         else
-          # 等待1秒后重试
-          # 打印动画字符
-          print "\r#{spinner.next}"
-          sleep 0.5
-          print "\r#{spinner.next}"
-          sleep 0.5
           retries += 1
+          dots = '.' * retries
+          print "\r#{dots}"
+          # 等待1秒后重试
+          sleep 1
         end
       end
 
