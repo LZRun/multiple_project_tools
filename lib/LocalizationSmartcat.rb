@@ -16,7 +16,7 @@ module Pixab
     Project_AirBrush = '6cd2db15-6325-43ae-9087-f78aca9bec9a'
     Project_AirBrushVideo = '16cbeffd-bb6e-46e8-a32e-9c79d23a796f'
 
-    attr_accessor :projects, :tags, :platform, :collections
+    attr_accessor :projects, :tags, :platform, :collections, :languages
 
     def initialize()
       @projects = Project_AirBrush
@@ -31,10 +31,12 @@ module Pixab
           @platform = 'android'
           @tags = 'android'
           @collections = 'AirBrush'
+          @languages = 'en,ru,tr,de,fr,zh-Hans,zh-Hant,pt-BR,es,ar'
         when '--ab-iOS'
           @platform = 'iOS'
           @tags = 'iOS'
           @collections = 'AirBrush'
+          @languages = 'en,ru,tr,de,fr,zh-Hans,zh-Hant,pt-BR,es,ar'
         when '--abv-iOS'
           @projects = Project_AirBrushVideo
           @platform = 'iOS'
@@ -57,6 +59,8 @@ module Pixab
           @platform = commands[index + 1]
         when '--collections'
           @collections = commands[index + 1]
+        when '--languages'
+          @languages = commands[index + 1]
         end
       end
 
@@ -176,6 +180,10 @@ module Pixab
         'fallback-to-default-language' => nil,
         'include-default-language' => nil,
       }
+
+      unless languages.nil?
+        export_params['languages'] = languages
+      end
 
       if !platform.nil?
         format = nil
