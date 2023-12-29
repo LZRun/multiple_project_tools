@@ -119,7 +119,7 @@ module Pixab
         end
       end
 
-      puts "Failed to download after #{max_retries} retries. Export ID: #{export_id}"
+      puts "\nFailed to download after #{max_retries} retries. Export ID: #{export_id}"
       return false
     end
 
