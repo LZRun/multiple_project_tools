@@ -8,6 +8,8 @@ require_relative '../lib/ComponentSynchronizer.rb'
 require_relative '../lib/Localization.rb'
 require_relative '../lib/Package.rb'
 require_relative '../lib/LocalizationSmartcat.rb'
+require_relative '../lib/LocalizationSmartcatImport.rb'
+require_relative '../lib/LocalizationSmartcatMerge.rb'
 
 case ARGV[0]
 when '--version'
@@ -37,7 +39,19 @@ when 'localizePhrase'
 when 'package'
   Pixab::Package.new.run
 when 'localize'
-  Pixab::LocalizationSmartcat.new.run(ARGV[1..-1])
+  if ARGV.count > 1
+    sub_command = ARGV[1]
+    case sub_command
+    when 'import'
+      Pixab::LocalizationSmartcatImport.new.run(ARGV[2..-1])
+    when 'merge'
+      Pixab::LocalizationSmartcatMerge.new.run(ARGV[2..-1])
+    else
+      Pixab::LocalizationSmartcat.new.run(ARGV[1..-1])
+    end
+  else
+    Pixab::LocalizationSmartcat.new.run(ARGV[1..-1])
+  end
 else
   puts "Invalid command".red
 end

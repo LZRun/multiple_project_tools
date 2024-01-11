@@ -3,23 +3,18 @@ require 'uri'
 require 'zip'
 require 'colored2'
 require 'nokogiri'
+require_relative './LocalizationSmartcatInfo.rb'
 
 module Pixab
 
   class LocalizationSmartcat
 
-    # 设置基本认证信息
-    USERNAME = '4c8b26ac-ff12-427f-a460-afaacbb3fa3c'
-    PASSWORD = '6_nDd3whcOZQHv5dPAusbq5Wmfl'
     Localization_FILE_NAME = 'Localization.zip'
 
-    Project_AirBrush = '6cd2db15-6325-43ae-9087-f78aca9bec9a'
-    Project_AirBrushVideo = '16cbeffd-bb6e-46e8-a32e-9c79d23a796f'
-
-    attr_accessor :projects, :tags, :platform, :collections, :languages
+    attr_accessor :projects, :tags, :platform, :collections, :languages, :format, :output
 
     def initialize()
-      @projects = Project_AirBrush
+      @projects = LocalizationSmartcatInfo::Project_AirBrush
       @collections = 'main'
     end
 
@@ -38,11 +33,11 @@ module Pixab
           @collections = 'AirBrush'
           @languages = 'en,ru,tr,de,fr,zh-Hans,zh-Hant,pt-BR,es,ar'
         when '--abv-iOS'
-          @projects = Project_AirBrushVideo
+          @projects = LocalizationSmartcatInfo::Project_AirBrushVideo
           @platform = 'iOS'
           @tags = 'iOS'
         when '--abv-android'
-          @projects = Project_AirBrushVideo
+          @projects = LocalizationSmartcatInfo::Project_AirBrushVideo
           @platform = 'android'
           @tags = 'android'
         end
@@ -61,6 +56,10 @@ module Pixab
           @collections = commands[index + 1]
         when '--languages'
           @languages = commands[index + 1]
+        when '--format'
+          @format = commands[index + 1]
+        when '--output'
+          @output = commands[index + 1]
         end
       end
 
@@ -86,7 +85,7 @@ module Pixab
       uri.query = URI.encode_www_form(export_params)
 
       request = Net::HTTP::Post.new(uri)
-      request.basic_auth(USERNAME,PASSWORD)
+      request.basic_auth(LocalizationSmartcatInfo::USERNAME, LocalizationSmartcatInfo::PASSWORD)
 
       response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == "https") do |http|
         http.request(request)
@@ -101,7 +100,7 @@ module Pixab
       while retries < max_retries
         uri = URI("#{download_url}/#{export_id}")
         request = Net::HTTP::Get.new(uri)
-        request.basic_auth(USERNAME,PASSWORD)
+        request.basic_auth(LocalizationSmartcatInfo::USERNAME, LocalizationSmartcatInfo::PASSWORD)
 
         response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == "https") do |http|
           http.request(request)
@@ -126,15 +125,27 @@ module Pixab
     # 第三步：解压缩ZIP文件
     def unzip_file(zip_path)
       Zip::File.open(zip_path) do |zip_file|
-        if platform == 'android'
+        case platform
+        when 'android'
           unzip_file_android(zip_file)
-        else
+        when 'iOS'
           unzip_file_iOS(zip_file)
+        else
+          unzip_file_common(zip_file)          
         end
       end
 
       File.delete(zip_path) if File.exist?(zip_path)
 
+    end
+
+    def unzip_file_common(zip_file)
+      zip_file.each do |f|
+        f_path = f.name
+        FileUtils.mkdir_p(File.dirname(f_path))
+        File.delete(f_path) if File.exist?(f_path)
+        f.extract(f_path)
+      end
     end
 
     def unzip_file_iOS(zip_file)
@@ -145,7 +156,7 @@ module Pixab
         f_path = extract_localization_file_path(f.name)
         FileUtils.mkdir_p(File.dirname(f_path))
         content = f.get_input_stream.read
-        if projects == Project_AirBrush
+        if projects == LocalizationSmartcatInfo::Project_AirBrush
           content = content.gsub(/=\s*".*";/) do |match|
             match.gsub('%s', '%@')
           end
@@ -181,29 +192,42 @@ module Pixab
         'include-default-language' => nil,
       }
 
+      final_format = nil
+      final_output = nil
+      unless platform.nil?
+        case platform
+        when 'android'
+          final_format = 'android-xml'
+          if projects == LocalizationSmartcatInfo::Project_AirBrush
+            final_output = '{LOCALE:ANDROID}/strings_ph.xml'
+          else
+            final_output = '{LOCALE:ANDROID}/strings.xml'
+          end
+        when 'iOS'
+          final_format = 'ios-strings'
+          final_output = '{LOCALE:IOS}.lproj/Localizable.strings'
+        end
+      end
+
+      unless @format.nil?
+        final_format = @format
+      end
+      unless @output.nil?
+        final_output = @output
+      end
+
+      unless final_format.nil?
+        export_params['format'] = final_format
+      end
+      unless final_output.nil?
+        export_params['output-file-path-template'] = final_output
+      end
+
       unless languages.nil?
         export_params['languages'] = languages
       end
 
-      if !platform.nil?
-        format = nil
-        template = nil
-        if platform == 'android'
-          format = 'android-xml'
-          if projects == Project_AirBrush
-            template = '{LOCALE:ANDROID}/strings_ph.xml'
-          else
-            template = '{LOCALE:ANDROID}/strings.xml'
-          end
-        else
-          format = 'ios-strings'
-          template = '{LOCALE:IOS}.lproj/Localizable.strings'
-        end
-        export_params['format'] = format
-        export_params['output-file-path-template'] = template
-      end
-
-      if !tags.nil?
+      unless tags.nil?
         export_params['labels'] = tags
       end
 
@@ -212,7 +236,7 @@ module Pixab
 
     def extract_localization_file_path(zip_file_path)
       case projects
-      when Project_AirBrush
+      when LocalizationSmartcatInfo::Project_AirBrush
         if platform.nil? || platform != 'android'
           return zip_file_path
         end
@@ -237,7 +261,7 @@ module Pixab
         end
         return "values#{localization}/#{File.basename(zip_file_path)}"
       
-      when Project_AirBrushVideo
+      when LocalizationSmartcatInfo::Project_AirBrushVideo
         if platform.nil?
           return zip_file_path
         end
@@ -268,11 +292,12 @@ module Pixab
         end
       end
 
+      return zip_file_path
     end
 
     def is_ignored_file_path(file_path)
       case projects
-      when Project_AirBrush
+      when LocalizationSmartcatInfo::Project_AirBrush
         return false unless platform == 'android'
 
         path = File.dirname(file_path)
