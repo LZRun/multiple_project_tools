@@ -8,7 +8,7 @@ module Pixab
 
     def run(commands=nil)
       download_params = []
-      import_params = []
+      import_params = ["--delete-file-after-import"]
       commands.each_index do |index|
         command = commands[index]
 

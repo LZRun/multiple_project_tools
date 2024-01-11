@@ -6,7 +6,11 @@ module Pixab
 
   class LocalizationSmartcatImport
 
-    attr_accessor :project, :collection, :format, :tags, :completion_state, :conflicting_values
+    attr_accessor :project, :collection, :format, :tags, :completion_state, :conflicting_values, :delete_file_after_import
+
+    def initialize()
+      @delete_file_after_import = false
+    end
 
     def run(commands = nil)
       commands.each_index do |index|
@@ -40,6 +44,10 @@ module Pixab
           @completion_state = commands[index + 1]
         when '--conflicting-values'
           @conflicting_values = commands[index + 1]
+        when '--delete-file-after-import'
+          @delete_file_after_import = true
+        when '--keep-file-after-import'
+          @delete_file_after_import = false
         end
       end
 
@@ -70,7 +78,9 @@ module Pixab
         import_params = generate_import_params_from_file_name(entry)
         import_id = import_localization(import_url, import_params, file_path)
         puts "#{entry} 正在上传中，上传ID：#{import_id}"
-        File.delete(file_path) if File.exist?(file_path)
+        if @delete_file_after_import
+          File.delete(file_path) if File.exist?(file_path)
+        end
       end 
 
       puts "\n》》》》》本地化文案上传已完成 》》》》》》》》》》\n".green
