@@ -10,6 +10,7 @@ require_relative '../lib/Package.rb'
 require_relative '../lib/LocalizationSmartcat.rb'
 require_relative '../lib/LocalizationSmartcatImport.rb'
 require_relative '../lib/LocalizationSmartcatMerge.rb'
+require_relative '../lib/mbox/Mbox.rb'
 
 case ARGV[0]
 when '--version'
@@ -52,6 +53,8 @@ when 'localize'
   else
     Pixab::LocalizationSmartcat.new.run(ARGV[1..-1])
   end
+when 'mbox'
+  Pixab::Mbox.new.run(ARGV[1..-1])
 else
   puts "Invalid command".red
 end

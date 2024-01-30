@@ -37,6 +37,10 @@ module Pixab
     def main_repo
       repos.first
     end
+
+    def main_repo_name
+      main_repo["name"]
+    end
   
     def sub_repos
       if repos.length > 1
@@ -45,6 +49,12 @@ module Pixab
         return sub_repos
       end
       return []
+    end
+
+    def sub_repo_names
+      sub_repos.map do |sub_repo|
+        sub_repo["name"]
+      end
     end
 
     def feature_name
