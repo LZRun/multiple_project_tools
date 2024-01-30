@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 # encoding: UTF-8
 
+require 'open3'
 require_relative './Utilities.rb'
 
 module Pixab
@@ -94,6 +95,39 @@ module Pixab
         commad += " origin #{branch}"
       end
       return Utilities.execute_shell(commad)
+    end
+
+    # 获取当前分支的远程分支
+    def current_remote_branch
+      local_branch = current_branch
+      return nil if local_branch.nil?
+
+      remote_branch, status = Open3.capture2("git for-each-ref --format='%(upstream:short)' refs/heads/#{local_branch}")
+      remote_branch.strip!
+      return nil if !status.success? || remote_branch.empty?
+
+      return nil unless check_remote_branch_exists_fast(remote_branch)
+      return remote_branch 
+    rescue => e
+      puts "Error: get current remote branch failed, #{e.message}".red
+      return nil
+    end
+
+    # 在远程仓库检查远程分支是否存在
+    # remote_branch: 远程分支名称，不需要remote前缀，使用origin作为remote
+    def check_remote_branch_exists(remote_branch)
+      exisit_remote_branch, status= Open3.capture2("git ls-remote --heads origin #{remote_branch}")
+      return status.success? && !exisit_remote_branch.strip.empty?
+    rescue => e
+      puts "Error: check remote branch exists failed, #{e.message}".red
+      return false
+    end
+
+    # 在本地仓库检查远程分支是否存在
+    # remote_branch: 远程分支名称
+    def check_remote_branch_exists_fast(remote_branch)
+      exisit_remote_branch, status = Open3.capture2("git branch -r --list #{remote_branch}")
+      status.success? && !exisit_remote_branch.strip.empty?
     end
 
   end

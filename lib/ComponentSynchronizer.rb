@@ -4,14 +4,14 @@
 require "fileutils"
 require 'colored2'
 require 'open3'
-require_relative './Utilities.rb'
+require_relative './GitUtils.rb'
 require_relative './RepoManager.rb'
 
 module Pixab
 
   class ComponentSynchronizer
 
-    attr_accessor :is_need_build, :is_need_remote_repo, :is_need_pod_install
+    attr_accessor :is_need_build, :is_need_remote_repo, :is_need_pod_install, :is_use__target_branch
     attr_reader :repo_manager, :repos, :main_repo_name, :updated_repo_names
   
     def initialize(repo_manager = RepoManager.new, commands = nil)
@@ -19,6 +19,8 @@ module Pixab
       @is_need_build = false
       @is_need_remote_repo = false
       @is_need_pod_install = true
+      @is_use__target_branch = true
+
       if commands.nil?
         return
       end
@@ -31,9 +33,12 @@ module Pixab
           @is_need_remote_repo = true
         when "--no-pod-install"
           @is_need_pod_install = false
+        when "--current-branch"
+          @is_use__target_branch = false
         else
         end
       end
+
     end
   
     def run
@@ -121,9 +126,14 @@ module Pixab
       repo_commite_id = {}
       repos.each do |repo|
         repo_name = repo["name"]
-        repo_target_branch = repo["target_branch"]
+
         FileUtils.cd("#{repo_manager.root_path}/#{repo_name}")
-        `git fetch origin #{repo_target_branch}`
+        repo_target_branch = @is_use__target_branch ? repo_target_branch = repo["target_branch"] : GitUtils.current_branch
+        next unless GitUtils.check_remote_branch_exists_fast("origin/#{repo_target_branch}")    
+
+        stdout, status = Open3.capture2("git fetch origin #{repo_target_branch}")
+        next unless status.success?
+
         commit_id = `git log origin/#{repo_target_branch} -n 1 --pretty=format:"%H"`
         if !commit_id.nil?
           repo_commite_id[repo_name] = commit_id
@@ -200,4 +210,3 @@ module Pixab
   end
   
 end
-
